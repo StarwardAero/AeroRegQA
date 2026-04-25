@@ -5,6 +5,10 @@
 </p>
 
 <p align="center">
+  <a href="https://aeroregai.streamlit.app/"><strong>🌐 在线体验 Demo</strong></a>
+</p>
+
+<p align="center">
   <img src="https://img.shields.io/badge/Python-3.11-blue?logo=python" alt="Python"/>
   <img src="https://img.shields.io/badge/LLM-DeepSeek-green" alt="DeepSeek"/>
   <img src="https://img.shields.io/badge/VectorDB-ChromaDB-orange" alt="ChromaDB"/>
