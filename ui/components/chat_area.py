@@ -20,10 +20,9 @@ def render(conversation_manager, agent, services):
         f"""
         <section class="page-hero">
             <p class="eyebrow">AI Knowledge Index</p>
-            <h1 class="hero-title">更安静、更专业的低空适航知识工作台</h1>
+            <h1 class="hero-title">适航法规智能问答工作台</h1>
             <p class="hero-subtitle">
-                围绕适航规章、咨询通告与低空政策材料，完成上传、索引、检索与问答。
-                当前界面已重构为极简现代风格，帮助你更专注于知识本身。
+                上传适航规章、咨询通告与管理程序，检索相关条款并生成带来源的回答。
             </p>
             <div class="chip-row">
                 <span class="stat-chip"><strong>模型</strong>{active_model}</span>
@@ -59,7 +58,7 @@ def render(conversation_manager, agent, services):
                 sources = msg["metadata"]["sources"]
                 st.caption(f"来源文献：{', '.join(sources)}")
 
-    prompt = st.chat_input("请输入与你的适航规章、政策文本或知识库内容相关的问题")
+    prompt = st.chat_input("请输入适航法规或已上传文档相关的问题")
 
     if prompt:
         if AppState.get("is_generating"):
