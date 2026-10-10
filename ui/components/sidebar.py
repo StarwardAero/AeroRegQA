@@ -9,9 +9,9 @@ def render(conversation_manager, services):
         """
         <div class="sidebar-brand">
             <p class="eyebrow">Workspace</p>
-            <h1 class="sidebar-title">低空适航知识索引</h1>
+            <h1 class="sidebar-title">适航法规知识库</h1>
             <p class="sidebar-subtitle">
-                面向适航规章、AC 通告与低空政策文献的知识问答工作台。
+                面向适航规章、咨询通告与管理程序的知识问答工作台。
             </p>
         </div>
         """,
@@ -43,7 +43,7 @@ def render(conversation_manager, services):
             """
             <div class="empty-panel">
                 <strong>还没有历史对话</strong>
-                新建一个会话后，即可开始围绕适航规章与低空政策材料进行问答。
+                新建一个会话后，即可围绕适航法规和已上传的审定资料进行问答。
             </div>
             """,
             unsafe_allow_html=True,
