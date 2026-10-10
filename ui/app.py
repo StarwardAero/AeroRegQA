@@ -74,8 +74,8 @@ def get_services() -> dict:
 def main():
     # 1. 页面基础配置
     st.set_page_config(
-        page_title="低空适航与规章问答 AI",
-        page_icon="🚁",
+        page_title="适航法规智能问答",
+        page_icon="✈️",
         layout="wide",
         initial_sidebar_state="expanded"
     )
