@@ -13,7 +13,7 @@ def render(services):
     """渲染文件上传与知识库构建组件"""
     st.markdown('<p class="section-label">知识库扩充</p>', unsafe_allow_html=True)
     st.markdown(
-        '<p class="helper-text">上传规章、通告、政策文件后，系统会自动完成解析、分块与向量化入库。</p>',
+        '<p class="helper-text">上传适航规章、咨询通告或管理程序后，系统会自动完成解析、分块与向量化入库。</p>',
         unsafe_allow_html=True,
     )
 
@@ -54,7 +54,7 @@ def render(services):
                         status_text.text(f"[{i+1}/{total_files}] 正在解析文档内容: {file.name}")
                         markdown_text = ParserFactory.parse_file(saved_path)
 
-                        status_text.text(f"[{i+1}/{total_files}] 正在进行学术语义分块: {file.name}")
+                        status_text.text(f"[{i+1}/{total_files}] 正在进行法规文本分块: {file.name}")
                         chunks = chunker.chunk_document(markdown_text, file.name)
 
                         status_text.text(f"[{i+1}/{total_files}] 正在向量化并写入知识库: {file.name}")
@@ -79,7 +79,7 @@ def render(services):
                 """
                 <div class="empty-panel">
                     <strong>拖拽或选择待入库文档</strong>
-                    建议优先上传正式规章、咨询通告与政策原文，以保证检索结果的可靠性。
+                    建议优先上传现行适航规章、咨询通告和管理程序原文，并核对文件版本。
                 </div>
                 """,
                 unsafe_allow_html=True,
