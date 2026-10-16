@@ -1,4 +1,6 @@
 name: academic-rag
+# Community Cloud selects this file before requirements.txt.
+# Full knowledge-base release: rebuild the environment for the Skills/Router app.
 dependencies:
   - python=3.11
   - pip
