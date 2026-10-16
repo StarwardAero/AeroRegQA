@@ -1,4 +1,5 @@
 import chromadb
+from chromadb.config import Settings
 from pathlib import Path
 from utils.logger import get_logger
 from core.chunker.chunk_models import DocumentChunk
@@ -6,27 +7,42 @@ from .embedder import EmbeddingService
 
 log = get_logger(__name__)
 
+try:
+    import posthog
+
+    posthog.disabled = True
+    posthog.capture = lambda *args, **kwargs: None
+except Exception:
+    pass
+
 class ChromaStore:
-    def __init__(self, persist_dir: Path, embedding_service: EmbeddingService):
+    def __init__(self, persist_dir: Path, embedding_service: EmbeddingService, seed_path: Path | None = None):
         # Windows 兼容：路径必须用 str() 转换
-        self.client = chromadb.PersistentClient(path=str(persist_dir))
+        self.client = chromadb.PersistentClient(
+            path=str(persist_dir),
+            settings=Settings(anonymized_telemetry=False),
+        )
         self.embedding_service = embedding_service
         self.collection_name = "default"
         # 获取或创建集合
         self.collection = self.client.get_or_create_collection(name=self.collection_name)
+        if seed_path is not None:
+            from .seed import restore_seed
+            imported = restore_seed(self.collection, seed_path, embedding_service.model_name)
+            log.info(f"Regulation seed ready: {imported} chunks imported")
         log.info(f"ChromaDB initialized at {persist_dir}")
 
     def add_documents(self, chunks: list[DocumentChunk], collection_name: str = "default") -> int:
         """批量写入向量库"""
         if not chunks:
             return 0
-            
+
         texts = [chunk.content for chunk in chunks]
         embeddings = self.embedding_service.embed_texts(texts)
-        
+
         ids = [chunk.chunk_id for chunk in chunks]
         metadatas = [chunk.metadata for chunk in chunks]
-        
+
         # 考虑到 Chroma 的单次写入限制，这里可以简单分批，但这里假设前面已经切好且不大
         self.collection.add(
             ids=ids,
@@ -54,13 +70,13 @@ class ChromaStore:
             n_results=top_k,
             include=["documents", "metadatas", "distances"]
         )
-        
+
         chunks = []
         if results and results.get("documents") and len(results["documents"][0]) > 0:
             docs = results["documents"][0]
             metas = results["metadatas"][0]
             ids = results["ids"][0]
-            
+
             for i in range(len(docs)):
                 chunk = DocumentChunk(
                     chunk_id=ids[i],
@@ -68,7 +84,7 @@ class ChromaStore:
                     metadata=metas[i]
                 )
                 chunks.append(chunk)
-                
+
         return chunks
 
     def get_collection_stats(self, collection_name: str = "default") -> dict:

@@ -10,14 +10,14 @@ class EmbeddingService:
     def __init__(self, model_name: str, api_key: str, base_url: str):
         self.model_name = model_name
         self.client = openai.OpenAI(api_key=api_key, base_url=base_url)
-        
+
     def embed_texts(self, texts: List[str], batch_size: int = 20) -> List[List[float]]:
         """批量调用 Embedding API (含分批+重试)"""
         all_embeddings = []
         for i in range(0, len(texts), batch_size):
             batch = texts[i:i+batch_size]
             log.debug(f"Embedding batch {i//batch_size + 1}, size: {len(batch)}")
-            
+
             retries = 3
             for attempt in range(retries):
                 try:
@@ -52,5 +52,5 @@ class EmbeddingService:
                 return self.service.embed_texts(texts)
             def embed_query(self, text: str) -> List[float]:
                 return self.service.embed_query(text)
-                
+
         return LangchainEmbeddingWrapper(self)

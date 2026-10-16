@@ -24,7 +24,7 @@ class ConversationStorage:
         if not file_path.exists():
             log.warning(f"Conversation {conversation_id} not found.")
             return None
-            
+
         try:
             with open(file_path, 'r', encoding='utf-8') as f:
                 data = json.load(f)
@@ -56,7 +56,7 @@ class ConversationStorage:
                     })
             except Exception as e:
                 log.warning(f"Failed to read {file_path}: {e}")
-                
+
         # 降序排序
         summaries.sort(key=lambda x: x["updated_at"], reverse=True)
         return summaries

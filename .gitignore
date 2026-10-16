@@ -1,5 +1,13 @@
 # Environment variables
 .env
+.env.*
+!.env.example
+.streamlit/secrets.toml
+_maintenance/
+online-restored.png
+data/app.db*
+data/chroma_db_backups/
+*.log
 
 # Runtime data
 data/uploads/

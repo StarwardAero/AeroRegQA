@@ -9,7 +9,7 @@ class TxtParser(BaseParser):
     def parse(self, file_path: Path) -> str:
         if not file_path.exists():
             raise ParseError(f"File not found: {file_path}")
-            
+
         try:
             log.info(f"Parsing TXT: {file_path.name}")
             encoding = detect_encoding(file_path)

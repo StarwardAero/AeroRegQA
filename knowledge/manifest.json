@@ -1,0 +1,25 @@
+{
+  "version": "2026-10-16-v1",
+  "embedding_model": "BAAI/bge-m3",
+  "dimension": 1024,
+  "chunks": 4235,
+  "sources": [
+    "CAAC-CCAR-23-R3-正常类实用类特技类和通勤类飞机适航规定.pdf",
+    "CAAC-CCAR-27-R1-正常类旋翼航空器适航规定.pdf",
+    "CAAC-CCAR-29-R3-运输类旋翼航空器适航规定-2025.pdf",
+    "CAAC-CCAR-92-民用无人驾驶航空器运行安全管理规则-2024.pdf",
+    "EASA-Easy-Access-Rules-U-space-Regulation-EU-2021-664.pdf",
+    "EASA-Easy-Access-Rules-Unmanned-Aircraft-Systems.pdf",
+    "EASA-MOC-4-SC-VTOL-Issue-2-FINAL-2025.pdf",
+    "EASA-SC-VTOL-02-small-category-VTOL-capable-aircraft-2024.pdf",
+    "FAA-Advanced-Air-Mobility-Implementation-Plan-Innovate28.pdf",
+    "FAA-EB-105A-Vertiport-Design-2024.pdf",
+    "FAA-Integration-of-Powered-Lift-Final-Rule-2024.pdf",
+    "FAA-UTM-Concept-of-Operations-v2-2020.pdf",
+    "中华人民共和国民用航空法_20210429.docx",
+    "中华人民共和国空域管理条例.pdf",
+    "无人驾驶航空器飞行管理暂行条例.txt",
+    "民用航空产品和零部件合格审定规定.pdf",
+    "限用类无人驾驶航空器系统.pdf"
+  ]
+}

@@ -22,7 +22,7 @@ class PDFParser(BaseParser):
     def parse(self, file_path: Path) -> str:
         if not file_path.exists():
             raise ParseError(f"File not found: {file_path}")
-            
+
         # 尝试使用 Marker
         if self.use_marker and self._marker_available:
             try:
@@ -30,7 +30,7 @@ class PDFParser(BaseParser):
                 return self._parse_with_marker(file_path)
             except Exception as e:
                 log.warning(f"Marker parsing failed: {e}. Falling back to PyMuPDF.")
-                
+
         # 降级使用 PyMuPDF
         try:
             log.info(f"Parsing PDF with PyMuPDF: {file_path.name}")
@@ -44,7 +44,7 @@ class PDFParser(BaseParser):
         # 若实际使用中 API 不符，会触发异常并安全降级到 PyMuPDF
         from marker.convert import convert_single_pdf
         from marker.models import load_all_models
-        
+
         models = load_all_models()
         full_text, images, out_meta = convert_single_pdf(str(file_path), models)
         return full_text

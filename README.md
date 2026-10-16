@@ -18,6 +18,22 @@
 
 ---
 
+## 内置规章与部署（2026-10 更新）
+
+本次同步本地完整低空适航版本，包含混合检索、重排序、意图路由、专项问答 Skills、引用检查、反馈记录和 FastAPI。网站首次启动自动恢复 **17 个来源、4,235 个文本块**，无需访客先上传资料。
+
+原项目 19 个资料文件存放于 `knowledge/documents/`，未入库候选单独保留。具体入库边界见 [知识库说明](knowledge/README.md) 与 [来源清单](knowledge/manifest.json)。这些是收集时的版本快照，不代表全部或最新有效法规。
+
+Streamlit Community Cloud 的入口仍为 `ui/app.py`，Python 使用 3.11。保留已有 Secrets，至少配置 `LLM_API_KEY`、`LLM_BASE_URL`、`LLM_MODEL_NAME`、`EMBEDDING_API_KEY`；向量模型必须是 `BAAI/bge-m3`，默认接口为 `https://api.siliconflow.cn/v1`。未配置的 Judge、Lite、Router 模型自动复用主模型名，支持第三方服务商的模型命名。
+
+`knowledge/seed.zip` 内置文本和向量，启动恢复不调用外部模型。运行时数据库、密钥、对话与日志仍排除在 Git 之外。云端运行目录丢失后会恢复内置知识库；访客后来上传的文件和对话不保证永久保存。当前版本仍是共享演示实例，未实现访客数据隔离。
+
+默认依赖使用 PyMuPDF 解析文本 PDF，避免云端安装大型 OCR 模型；本地扫描件 OCR 可选安装 `pip install -r requirements-ocr.txt`。Redis 不可用时自动禁用缓存，统计数据库默认使用 SQLite，无需单独部署 MySQL。
+
+验证：`python -m pytest -q`。知识库测试会在临时目录恢复完整索引并验证向量检索、重复启动及模型兼容性，不调用付费接口。
+
+---
+
 ## 📌 项目简介
 
 **AeroRegQA** 面向适航工程师、审定人员和航空产品研发团队，提供可本地部署的**适航法规检索与问答系统**。用户可上传适航规章、咨询通告（AC）、管理程序（AP）及相关审定资料，构建自己的法规知识库。

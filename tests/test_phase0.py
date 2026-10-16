@@ -11,11 +11,11 @@ def main():
     print(f"Base URL: {settings.LLM_BASE_URL}")
     print(f"Chroma DB Dir: {settings.CHROMA_DIR}")
     print(f"Logs Dir: {settings.LOGS_DIR}")
-    
+
     dirty_text = "Hello\x00 World!"
     clean = clean_markdown(dirty_text)
     print(f"Cleaned text: {clean}")
-    
+
     log.info("Phase 0 Test Completed successfully!")
 
 if __name__ == "__main__":

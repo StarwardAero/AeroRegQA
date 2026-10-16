@@ -22,11 +22,11 @@ class ConversationManager:
         if not conv:
             log.error(f"Cannot add message to non-existent conversation: {conversation_id}")
             return
-            
+
         msg = Message(role=role, content=content, metadata=metadata or {})
         conv.messages.append(msg)
         conv.updated_at = get_current_time_str()
-        
+
         self.storage.save(conv)
         log.debug(f"Added {role} message to {conversation_id}")
 
@@ -37,7 +37,7 @@ class ConversationManager:
         conv = self.storage.load(conversation_id)
         if not conv or not conv.messages:
             return []
-            
+
         history = []
         # 取最后 last_n 条消息
         recent_messages = conv.messages[-last_n:]
@@ -59,17 +59,17 @@ class ConversationManager:
         conv = self.storage.load(conversation_id)
         if not conv or len(conv.messages) < 2:
             return "新对话"
-            
+
         # 提取第一条用户提问和第一条 AI 回答
         first_question = next((m.content for m in conv.messages if m.role == 'user'), "")
         first_answer = next((m.content for m in conv.messages if m.role == 'assistant'), "")
-        
+
         if not first_question or not first_answer:
             return "新对话"
-            
+
         title = self.title_generator.generate(first_question, first_answer)
         conv.title = title
         conv.updated_at = get_current_time_str()
         self.storage.save(conv)
-        
+
         return title

@@ -5,6 +5,7 @@ from utils.logger import get_logger
 from .llm_client import LLMClient
 from .judge import ResponseJudge
 from .query_rewriter import QueryRewriter
+from .citation_checker import CitationChecker
 from core.vectorstore.retriever import HybridRetriever
 from config.prompts import RAG_SYSTEM_PROMPT, format_rag_prompt
 
@@ -27,11 +28,21 @@ class AgentResponse:
     sources: list[str]
 
 class AgenticRAG:
-    def __init__(self, retriever: HybridRetriever, main_llm: LLMClient, judge_llm: LLMClient, query_rewriter: QueryRewriter, judge: ResponseJudge, max_iterations: int = 3):
+    def __init__(
+        self,
+        retriever: HybridRetriever,
+        main_llm: LLMClient,
+        judge_llm: LLMClient,
+        query_rewriter: QueryRewriter,
+        judge: ResponseJudge,
+        citation_checker: CitationChecker | None = None,
+        max_iterations: int = 3,
+    ):
         self.retriever = retriever
         self.main_llm = main_llm
         self.judge = judge
         self.query_rewriter = query_rewriter
+        self.citation_checker = citation_checker or CitationChecker()
         self.max_iterations = max_iterations
 
     def run(self, question: str, chat_history: list[dict], stop_event: Any, on_step: Callable = None, on_token: Callable = None) -> AgentResponse:
@@ -65,10 +76,10 @@ class AgenticRAG:
 
             # 2. 检索阶段
             step_start = time.time()
-            chunks = self.retriever.retrieve(rewritten_query, top_k=5)
+            chunks = self.retriever.retrieve(rewritten_query, top_k=10)
             context = self.retriever.format_context(chunks)
             sources = list(set([c.metadata.get("source_file", "Unknown") for c in chunks]))
-            
+
             steps.append(AgentStep("retrieve", rewritten_query, f"Retrieved {len(chunks)} chunks.", int((time.time() - step_start)*1000), {"sources": sources}))
             if on_step: on_step(steps[-1])
 
@@ -92,7 +103,18 @@ class AgenticRAG:
                 # 裁判评估
                 step_start = time.time()
                 judge_result = self.judge.evaluate(question, context, draft_answer)
-                steps.append(AgentStep("judge", draft_answer, f"Score: {judge_result.score}. Acceptable: {judge_result.is_acceptable}", int((time.time() - step_start)*1000)))
+                steps.append(AgentStep(
+                    "judge",
+                    draft_answer,
+                    f"Score: {judge_result.score}. Acceptable: {judge_result.is_acceptable}",
+                    int((time.time() - step_start)*1000),
+                    {
+                        "score": judge_result.score,
+                        "is_acceptable": judge_result.is_acceptable,
+                        "reasoning": judge_result.reasoning,
+                        "suggestions": judge_result.suggestions,
+                    },
+                ))
                 if on_step: on_step(steps[-1])
 
                 if judge_result.is_acceptable:
@@ -109,12 +131,31 @@ class AgenticRAG:
                     continue # 进入下一轮循环
 
             if is_final_round:
-                # 流式输出最终回答
-                log.info(f"Generating final streaming answer at iteration {iteration}")
+                # 先完整生成并做引用校验，再向前端流式输出校验后的文本
+                log.info(f"Generating final answer at iteration {iteration}")
                 step_start = time.time()
-                
-                final_answer = self.main_llm.chat_with_callback(messages, on_token, stop_event)
-                
+
+                final_answer = self.main_llm.chat(messages, stream=False)
+                citation_result = self.citation_checker.check(final_answer, len(chunks))
+                if not citation_result.is_valid:
+                    cleaned_answer = self.citation_checker.strip_invalid_citations(final_answer, len(chunks))
+                    if cleaned_answer != final_answer:
+                        final_answer = cleaned_answer
+                steps.append(AgentStep(
+                    "citation_check",
+                    final_answer,
+                    f"Valid: {citation_result.is_valid}. Citations: {citation_result.valid_citations}/{citation_result.total_citations}",
+                    0,
+                    citation_result.__dict__,
+                ))
+                if on_step: on_step(steps[-1])
+
+                if on_token:
+                    for token in final_answer:
+                        if stop_event and stop_event.is_set():
+                            break
+                        on_token(token)
+
                 was_interrupted = stop_event and stop_event.is_set()
                 steps.append(AgentStep("generate_final", prompt, final_answer, int((time.time() - step_start)*1000)))
                 if on_step: on_step(steps[-1])

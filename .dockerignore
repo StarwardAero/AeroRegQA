@@ -1,0 +1,13 @@
+__pycache__
+*.pyc
+.env
+data/chroma_db/*
+data/conversations/*
+data/logs/*
+data/uploads/*
+data/parsed/*
+.git
+.gitignore
+*.md
+tests/
+docs/

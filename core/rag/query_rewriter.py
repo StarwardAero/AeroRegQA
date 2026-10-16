@@ -24,7 +24,7 @@ class QueryRewriter:
 
         prompt = format_rewrite_prompt(original_query, history_str)
         messages = [{"role": "user", "content": prompt}]
-        
+
         try:
             rewritten_query = self.llm.chat(messages, stream=False)
             rewritten_query = rewritten_query.strip().strip('"\'')

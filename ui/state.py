@@ -16,7 +16,7 @@ class AppState:
             "uploaded_files_status": {},
             "knowledge_base_stats": {"total_chunks": 0, "sources": []}
         }
-        
+
         for key, value in defaults.items():
             if key not in st.session_state:
                 st.session_state[key] = value

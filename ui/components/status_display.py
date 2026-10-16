@@ -1,30 +1,95 @@
+"""Agent Pipeline 可视化 — 展示检索增强生成处理流程。"""
+
 import streamlit as st
 
 
 def render_thinking_status(agent_steps: list):
-    """渲染 AI 思考的详细动画与日志"""
+    """渲染 AI Agent 处理流程的 Pipeline 可视化。"""
     if not agent_steps:
         return
 
-    with st.status("正在分析问题并生成回答", expanded=True) as status:
-        for step in agent_steps:
-            if step.step_type == "rewrite":
-                st.write(f"**问题理解**：将问题重写为 `{step.output_data}`（{step.duration_ms} ms）")
-            elif step.step_type == "retrieve":
-                sources = step.metadata.get("sources", [])
-                st.write(
-                    f"**知识检索**：找到相关资料 {step.output_data}。来源：{', '.join(sources)}（{step.duration_ms} ms）"
-                )
-            elif step.step_type == "generate":
-                st.write(f"**草稿生成**：正在构建回答内容（{step.duration_ms} ms）")
-            elif step.step_type == "judge":
-                score_str = step.output_data.split(".")[0] if "." in step.output_data else step.output_data
-                is_acc = "通过" if "True" in step.output_data else "未通过，继续优化"
-                st.write(f"**结果评估**：{score_str}，{is_acc}（{step.duration_ms} ms）")
-            elif step.step_type == "generate_final":
-                st.write(f"**最终输出**：完成回答整理（{step.duration_ms} ms）")
+    # Pipeline 阶段定义
+    pipeline_stages = [
+        ("rewrite", "✏️", "问题重写"),
+        ("retrieve", "🔀", "混合检索"),
+        ("generate", "📝", "生成草稿"),
+        ("judge", "⚖️", "质量评估"),
+        ("generate_final", "✅", "最终输出"),
+    ]
 
-        if agent_steps[-1].step_type == "generate_final" or (agent_steps[-1].step_type == "judge" and "True" in agent_steps[-1].output_data):
-            status.update(label="分析完成，已生成最终回答", state="complete", expanded=False)
+    completed_types = {s.step_type for s in agent_steps}
+    last_type = agent_steps[-1].step_type if agent_steps else ""
+
+    # 确定最远完成的阶段索引
+    current_idx = -1
+    for i, (stype, _, _) in enumerate(pipeline_stages):
+        if stype in completed_types:
+            current_idx = i
+
+    # ── Pipeline 图 ──
+    html = '<div class="pipeline-container">'
+    for i, (stype, icon, label) in enumerate(pipeline_stages):
+        if i > 0:
+            arrow_cls = "done" if i <= current_idx else ""
+            html += f'<div class="pipeline-arrow {arrow_cls}"></div>'
+
+        if stype in completed_types and stype != last_type:
+            cls = "done"
+        elif stype == last_type:
+            cls = "done" if stype == "generate_final" else "active"
         else:
-            status.update(label="继续检索更合适的依据与答案", state="running")
+            cls = ""
+
+        html += (
+            f'<div class="pipeline-step {cls}">'
+            f'<div class="step-icon">{icon}</div>'
+            f'<div class="step-label">{label}</div>'
+            f'</div>'
+        )
+    html += '</div>'
+    st.markdown(html, unsafe_allow_html=True)
+
+    # ── 步骤详情 ──
+    for step in agent_steps:
+        t = step.step_type
+        ms = step.duration_ms
+        time_html = f'<span style="float:right;color:var(--text-muted);font-size:0.8rem">{ms}ms</span>'
+
+        if t == "rewrite":
+            st.markdown(
+                f'<div class="step-detail-panel">'
+                f'✏️ <strong>问题理解</strong>：重写为 <code>{step.output_data}</code>{time_html}</div>',
+                unsafe_allow_html=True,
+            )
+        elif t == "retrieve":
+            sources = step.metadata.get("sources", [])
+            src_text = ", ".join(sources) if sources else "无"
+            st.markdown(
+                f'<div class="step-detail-panel retrieval">'
+                f'🔀 <strong>混合检索</strong>（BM25 + 向量 + RRF 融合 → Rerank 重排序）：'
+                f'找到 {step.output_data} 相关片段'
+                f'<br><span style="color:var(--text-muted);font-size:0.82rem">来源：{src_text}</span>'
+                f'{time_html}</div>',
+                unsafe_allow_html=True,
+            )
+        elif t == "generate":
+            st.markdown(
+                f'<div class="step-detail-panel">'
+                f'📝 <strong>草稿生成</strong>：基于检索结果构建回答{time_html}</div>',
+                unsafe_allow_html=True,
+            )
+        elif t == "judge":
+            is_pass = "True" in step.output_data
+            pcls = "judge-pass" if is_pass else "judge-fail"
+            verdict = "✅ 通过" if is_pass else "🔄 未通过，继续迭代"
+            st.markdown(
+                f'<div class="step-detail-panel {pcls}">'
+                f'⚖️ <strong>LLM-as-Judge</strong>：{verdict}{time_html}</div>',
+                unsafe_allow_html=True,
+            )
+        elif t == "generate_final":
+            st.markdown(
+                f'<div class="step-detail-panel" style="border-left-color:#10b981;">'
+                f'✅ <strong>最终输出</strong>：回答整理完成{time_html}</div>',
+                unsafe_allow_html=True,
+            )

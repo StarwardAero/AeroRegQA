@@ -9,9 +9,9 @@ def render(conversation_manager, services):
         """
         <div class="sidebar-brand">
             <p class="eyebrow">Workspace</p>
-            <h1 class="sidebar-title">适航法规知识库</h1>
+            <h1 class="sidebar-title">低空适航知识索引</h1>
             <p class="sidebar-subtitle">
-                面向适航规章、咨询通告与管理程序的知识问答工作台。
+                面向适航规章、AC 通告与低空政策文献的知识问答工作台。
             </p>
         </div>
         """,
@@ -19,15 +19,16 @@ def render(conversation_manager, services):
     )
 
     st.markdown('<p class="section-label">模型配置</p>', unsafe_allow_html=True)
-    available_models = [settings.LLM_MODEL_NAME, "deepseek-reasoner", "gpt-4o"]
+    available_models = [settings.LLM_MODEL_NAME]
     selected_model = st.selectbox(
         "当前模型",
         available_models,
         index=available_models.index(settings.LLM_MODEL_NAME) if settings.LLM_MODEL_NAME in available_models else 0,
         label_visibility="collapsed",
+        disabled=True,
     )
     AppState.set("selected_model", selected_model)
-    st.caption("当前问答将使用所选模型完成检索增强生成。")
+    st.caption("当前问答使用服务端配置的主模型。")
 
     st.markdown('<p class="section-label">会话历史</p>', unsafe_allow_html=True)
 
@@ -43,7 +44,7 @@ def render(conversation_manager, services):
             """
             <div class="empty-panel">
                 <strong>还没有历史对话</strong>
-                新建一个会话后，即可围绕适航法规和已上传的审定资料进行问答。
+                新建一个会话后，即可开始围绕适航规章与低空政策材料进行问答。
             </div>
             """,
             unsafe_allow_html=True,
@@ -84,16 +85,32 @@ def render(conversation_manager, services):
     if chroma_store:
         stats = chroma_store.get_collection_stats()
         sources = chroma_store.list_sources()
+        total_chunks = stats.get("total_chunks", 0)
+        total_sources = len(sources)
 
-        st.metric(label="已索引文本块", value=stats.get("total_chunks", 0))
-        st.caption("上传的文档会被解析、分块并写入向量索引。")
+        st.markdown(
+            f'''
+            <div class="kb-stats-grid">
+                <div class="kb-stat-card">
+                    <div class="stat-value">{total_chunks}</div>
+                    <div class="stat-label">已索引文本块</div>
+                </div>
+                <div class="kb-stat-card">
+                    <div class="stat-value">{total_sources}</div>
+                    <div class="stat-label">收录文献数</div>
+                </div>
+            </div>
+            ''',
+            unsafe_allow_html=True,
+        )
+        st.caption("文档自动解析→分块→向量化入库。检索采用 BM25+向量混合+Rerank 重排序。")
 
         with st.expander("查看已收录文献", expanded=False):
             if sources:
                 for source in sources:
                     col1, col2 = st.columns([5, 1])
                     with col1:
-                        st.markdown(source)
+                        st.markdown(f'<div class="source-card">📄 {source}</div>', unsafe_allow_html=True)
                     with col2:
                         if st.button("移除", key=f"del_src_{source}", help=f"从知识库移除 {source}"):
                             chroma_store.delete_by_source(source)
@@ -101,3 +118,17 @@ def render(conversation_manager, services):
                             st.rerun()
             else:
                 st.caption("知识库为空，请先上传文献。")
+
+    st.markdown('<p class="section-label">技术架构</p>', unsafe_allow_html=True)
+    st.markdown(
+        """
+        <div style="display:flex; flex-wrap:wrap; gap:6px; padding:4px 0;">
+            <span class="tech-badge rag">Agentic RAG</span>
+            <span class="tech-badge hybrid">Hybrid Search</span>
+            <span class="tech-badge rerank">Rerank</span>
+            <span class="tech-badge llm">DeepSeek V3</span>
+            <span class="tech-badge api">FastAPI</span>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )

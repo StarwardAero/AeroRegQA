@@ -25,16 +25,16 @@ class ResponseJudge:
             {"role": "system", "content": JUDGE_SYSTEM_PROMPT},
             {"role": "user", "content": format_judge_prompt(question, context, answer)}
         ]
-        
+
         try:
             raw_response = self.llm.chat(messages, stream=False)
             result = self._parse_judge_response(raw_response)
-            
+
             # 判断是否接受
             result.is_acceptable = result.score >= self.threshold
             log.info(f"Judge evaluated score: {result.score}. Acceptable: {result.is_acceptable}")
             return result
-            
+
         except Exception as e:
             log.error(f"Judge evaluation failed: {e}")
             return JudgeResult(
@@ -59,6 +59,6 @@ class ResponseJudge:
                 )
             except json.JSONDecodeError as e:
                 log.warning(f"Failed to parse JSON from judge: {e}")
-                
+
         # 兜底默认值
         return JudgeResult(False, 0.0, "解析裁判返回格式失败", ["重试一次"])

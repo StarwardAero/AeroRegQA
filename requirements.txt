@@ -3,10 +3,11 @@ streamlit>=1.40.0,<2.0
 langchain>=0.3.0,<0.4
 langchain-community>=0.3.0,<0.4
 langchain-openai>=0.2.0,<0.3
-chromadb>=0.5.0,<0.6
+chromadb==0.5.23
+numpy>=1.26,<2.0
 
 # PDF 解析
-marker-pdf>=1.0.0,<2.0
+# Marker OCR is optional; see requirements-ocr.txt for local installations.
 PyMuPDF>=1.24.0,<2.0
 
 # DOCX 解析
@@ -19,8 +20,24 @@ openai>=1.50.0,<2.0
 python-dotenv>=1.0.0,<2.0
 loguru>=0.7.0,<1.0
 chardet>=5.0.0,<6.0
+requests>=2.31.0,<3.0
 pydantic>=2.0.0,<3.0
 pydantic-settings>=2.0.0,<3.0
 
+# API 服务
+fastapi>=0.104.0
+uvicorn[standard]>=0.24.0
+sse-starlette>=1.8.0
+python-multipart>=0.0.6
+
+# 混合检索
+rank-bm25>=0.2.2
+
 # 测试
 pytest>=8.0.0,<9.0
+
+# 数据库层
+redis>=5.0.0
+sqlalchemy>=2.0.0,<3.0
+pymysql>=1.1.0
+aiosqlite>=0.19.0

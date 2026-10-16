@@ -12,14 +12,14 @@ class TitleGenerator:
         """根据首轮对话生成不超过6个字的标题"""
         prompt = format_title_prompt(first_question, first_answer)
         messages = [{"role": "user", "content": prompt}]
-        
+
         try:
             title = self.llm.chat(messages, stream=False)
             title = title.strip().strip('"\'')
             # 严格截断至 6 个字符以内
             if len(title) > 6:
                 title = title[:6]
-                
+
             log.info(f"Generated title: '{title}'")
             return title
         except Exception as e:

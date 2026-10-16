@@ -13,7 +13,7 @@ def render(services):
     """渲染文件上传与知识库构建组件"""
     st.markdown('<p class="section-label">知识库扩充</p>', unsafe_allow_html=True)
     st.markdown(
-        '<p class="helper-text">上传适航规章、咨询通告或管理程序后，系统会自动完成解析、分块与向量化入库。</p>',
+        '<p class="helper-text">上传规章、通告、政策文件后，系统会自动完成解析、分块与向量化入库。</p>',
         unsafe_allow_html=True,
     )
 
@@ -49,16 +49,21 @@ def render(services):
                     status_text.text(f"[{i+1}/{total_files}] 正在处理: {file.name}")
 
                     try:
-                        saved_path = safe_save_uploaded_file(file, settings.UPLOAD_DIR)
+                        saved_path = safe_save_uploaded_file(
+                            file,
+                            settings.UPLOAD_DIR,
+                            max_size_bytes=settings.MAX_UPLOAD_SIZE_MB * 1024 * 1024,
+                        )
 
                         status_text.text(f"[{i+1}/{total_files}] 正在解析文档内容: {file.name}")
                         markdown_text = ParserFactory.parse_file(saved_path)
 
-                        status_text.text(f"[{i+1}/{total_files}] 正在进行法规文本分块: {file.name}")
-                        chunks = chunker.chunk_document(markdown_text, file.name)
+                        status_text.text(f"[{i+1}/{total_files}] 正在进行学术语义分块: {file.name}")
+                        source_name = saved_path.name
+                        chunks = chunker.chunk_document(markdown_text, source_name)
 
-                        status_text.text(f"[{i+1}/{total_files}] 正在向量化并写入知识库: {file.name}")
-                        chroma_store.delete_by_source(file.name)
+                        status_text.text(f"[{i+1}/{total_files}] 正在向量化并写入知识库: {source_name}")
+                        chroma_store.delete_by_source(source_name)
                         added_count = chroma_store.add_documents(chunks)
                         total_chunks_added += added_count
                     except Exception as e:
@@ -77,9 +82,13 @@ def render(services):
         else:
             st.markdown(
                 """
-                <div class="empty-panel">
-                    <strong>拖拽或选择待入库文档</strong>
-                    建议优先上传现行适航规章、咨询通告和管理程序原文，并核对文件版本。
+                <div class="empty-panel" style="text-align:center;">
+                    <div style="font-size:2.5rem; margin-bottom:0.5rem;">📂</div>
+                    <strong>拖拽或选择待入库文档</strong><br>
+                    <span style="color:var(--text-muted); font-size:0.85rem;">
+                        支持 PDF、DOCX、TXT、Markdown、CSV 格式<br>
+                        上传后自动完成解析→分块→向量化入库
+                    </span>
                 </div>
                 """,
                 unsafe_allow_html=True,

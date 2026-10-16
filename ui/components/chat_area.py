@@ -2,6 +2,7 @@ import streamlit as st
 from ui.state import AppState
 from .status_display import render_thinking_status
 from .file_uploader import render as render_file_uploader
+from core.rag.agent import AgentStep
 
 
 def render(conversation_manager, agent, services):
@@ -19,12 +20,20 @@ def render(conversation_manager, agent, services):
     st.markdown(
         f"""
         <section class="page-hero">
-            <p class="eyebrow">AI Knowledge Index</p>
-            <h1 class="hero-title">适航法规智能问答工作台</h1>
+            <p class="eyebrow">Agentic RAG · Knowledge Workspace</p>
+            <h1 class="hero-title">低空适航智能知识工作台</h1>
             <p class="hero-subtitle">
-                上传适航规章、咨询通告与管理程序，检索相关条款并生成带来源的回答。
+                基于 Agentic RAG 架构，融合混合检索、语义重排序与多轮推理，
+                围绕适航规章、咨询通告与低空政策文献提供专业级问答服务。
             </p>
-            <div class="chip-row">
+            <div class="chip-row" style="margin-top:0.8rem;">
+                <span class="tech-badge rag">🤖 Agentic RAG</span>
+                <span class="tech-badge hybrid">🔀 Hybrid Search</span>
+                <span class="tech-badge rerank">📊 Rerank</span>
+                <span class="tech-badge llm">🧠 来源溯源</span>
+                <span class="tech-badge api">⚡ FastAPI</span>
+            </div>
+            <div class="chip-row" style="margin-top:0.5rem;">
                 <span class="stat-chip"><strong>模型</strong>{active_model}</span>
                 <span class="stat-chip"><strong>文献</strong>{sources_count} 份</span>
                 <span class="stat-chip"><strong>索引块</strong>{chunks_count} 条</span>
@@ -51,6 +60,7 @@ def render(conversation_manager, agent, services):
     for msg in messages:
         role = msg["role"]
         content = msg["content"]
+        msg_index = messages.index(msg)
 
         with st.chat_message(role):
             st.markdown(content)
@@ -58,7 +68,28 @@ def render(conversation_manager, agent, services):
                 sources = msg["metadata"]["sources"]
                 st.caption(f"来源文献：{', '.join(sources)}")
 
-    prompt = st.chat_input("请输入适航法规或已上传文档相关的问题")
+            # ── 用户反馈按钮（仅 AI 回答） ──
+            if role == "assistant" and msg.get("content"):
+                feedback_key = f"feedback_{current_cid}_{msg_index}"
+                fb_col1, fb_col2, fb_col3 = st.columns([1, 1, 8])
+                with fb_col1:
+                    if st.button("👍", key=f"{feedback_key}_up", help="回答有帮助"):
+                        services["mysql_client"].save_feedback(
+                            conversation_id=current_cid,
+                            rating=5,
+                            comment="用户点赞",
+                        )
+                        st.toast("感谢反馈！👍", icon="✅")
+                with fb_col2:
+                    if st.button("👎", key=f"{feedback_key}_down", help="回答需要改进"):
+                        services["mysql_client"].save_feedback(
+                            conversation_id=current_cid,
+                            rating=1,
+                            comment="用户点踩",
+                        )
+                        st.toast("感谢反馈，我们会持续改进！👎", icon="📝")
+
+    prompt = st.chat_input("请输入与你的适航规章、政策文本或知识库内容相关的问题")
 
     if prompt:
         if AppState.get("is_generating"):
@@ -88,18 +119,52 @@ def render(conversation_manager, agent, services):
 
         chat_history = conversation_manager.get_chat_history(current_cid, last_n=10)
 
-        with st.spinner("正在检索知识库并生成回答..."):
-            response = agent.run(
-                question=prompt,
-                chat_history=chat_history[:-1],
-                stop_event=AppState.get("stop_event"),
-                on_step=on_step,
-                on_token=on_token,
-            )
+        effective_history = chat_history[:-1]
 
-        final_answer = response.final_answer
+        with st.spinner("正在理解问题、检索知识库并生成回答..."):
+            intent_router = services.get("intent_router")
+            skill_registry = services.get("skill_registry")
 
-        if response.was_interrupted:
+            if intent_router and skill_registry:
+                routing_decision = intent_router.route(prompt, effective_history)
+                routing_detail = (
+                    f"路由至 Skill: {routing_decision.skill_name} "
+                    f"(置信度: {routing_decision.confidence:.2f}, 方式: {routing_decision.method})"
+                )
+                on_step(AgentStep("routing", prompt, routing_detail, 0))
+
+                skill = skill_registry.get(routing_decision.skill_name)
+                if not skill:
+                    skill = skill_registry.get(skill_registry.default_skill_name)
+
+                result = skill.execute(
+                    question=prompt,
+                    chat_history=effective_history,
+                    stop_event=AppState.get("stop_event"),
+                    on_step=on_step,
+                    on_token=on_token,
+                )
+
+                final_answer = result.answer
+                sources = result.sources
+                iterations = result.iterations
+                was_interrupted = result.was_interrupted
+                skill_name = result.skill_name or routing_decision.skill_name
+            else:
+                response = agent.run(
+                    question=prompt,
+                    chat_history=effective_history,
+                    stop_event=AppState.get("stop_event"),
+                    on_step=on_step,
+                    on_token=on_token,
+                )
+                final_answer = response.final_answer
+                sources = response.sources
+                iterations = response.total_iterations
+                was_interrupted = response.was_interrupted
+                skill_name = "rag"
+
+        if was_interrupted:
             final_answer += "\n\n*[回答已被用户中断]*"
 
         assistant_placeholder.markdown(final_answer)
@@ -107,13 +172,14 @@ def render(conversation_manager, agent, services):
         with st.expander("查看 AI 处理过程", expanded=False):
             render_thinking_status(agent_steps)
 
-        if response.sources:
-            st.caption(f"来源文献：{', '.join(response.sources)}")
+        if sources:
+            st.caption(f"来源文献：{', '.join(sources)}")
 
         metadata = {
-            "sources": response.sources,
-            "iterations": response.total_iterations,
-            "interrupted": response.was_interrupted,
+            "sources": sources,
+            "iterations": iterations,
+            "interrupted": was_interrupted,
+            "skill_name": skill_name,
         }
         messages.append({"role": "assistant", "content": final_answer, "metadata": metadata})
         AppState.set("messages", messages)
