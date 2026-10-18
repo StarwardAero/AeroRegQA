@@ -1,7 +1,26 @@
 import os
+import sys
 from pathlib import Path
 from dotenv import load_dotenv
 from pydantic_settings import BaseSettings
+
+
+def _cloud_llm_overrides() -> dict:
+    """Read the optional LLM section without replacing other Cloud secrets."""
+    streamlit = sys.modules.get("streamlit")
+    if streamlit is None:
+        return {}
+    from streamlit.errors import StreamlitSecretNotFoundError
+    try:
+        section = streamlit.secrets.get("aeroregqa_llm", {})
+    except StreamlitSecretNotFoundError:
+        return {}
+    allowed = {
+        "LLM_API_KEY", "LLM_BASE_URL", "LLM_MODEL_NAME",
+        "LLM_JUDGE_MODEL_NAME", "LLM_LITE_MODEL_NAME",
+        "LLM_REASONER_MODEL_NAME", "LLM_ROUTER_MODEL_NAME",
+    }
+    return {key: value for key, value in section.items() if key in allowed}
 
 class Settings(BaseSettings):
     """从 .env 加载的全局配置，模块级单例"""
@@ -83,7 +102,7 @@ class Settings(BaseSettings):
     @classmethod
     def load(cls) -> "Settings":
         load_dotenv(Path(__file__).resolve().parents[1] / ".env")
-        instance = cls()
+        instance = cls(**_cloud_llm_overrides())
         for field in ["LLM_JUDGE_MODEL_NAME", "LLM_LITE_MODEL_NAME", "LLM_REASONER_MODEL_NAME", "LLM_ROUTER_MODEL_NAME"]:
             if not getattr(instance, field):
                 setattr(instance, field, instance.LLM_MODEL_NAME)
