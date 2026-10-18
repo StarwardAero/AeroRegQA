@@ -25,7 +25,7 @@ def test_original_page_and_chapter_headings_are_from_pdf():
     assert re.search(r'E\s*章\s*空中交通管理', context)
     assert re.search(r'F\s*章\s*运行管理', context)
     query = parse_qs(urlparse(original_url(SOURCE, 2)).query)
-    assert query == {'source': [SOURCE], 'page': ['2']}
+    assert query == {'source': [SOURCE], 'pdf_page': ['2']}
 
 
 def test_semantic_edit_and_reference_mapping_survive_check():

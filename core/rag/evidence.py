@@ -46,7 +46,7 @@ def original_url(source, page=None):
         return None
     params = {'source': source}
     if page:
-        params['page'] = str(page)
+        params['pdf_page'] = str(page)
     return '/?' + urlencode(params)
 
 

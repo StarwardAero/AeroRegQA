@@ -41,7 +41,7 @@ def render_source_page():
         import fitz
         with fitz.open(path) as doc:
             try:
-                initial = int(st.query_params.get('page', '1'))
+                initial = int(st.query_params.get('pdf_page', '1'))
             except ValueError:
                 initial = 1
             initial = min(max(initial, 1), len(doc))
