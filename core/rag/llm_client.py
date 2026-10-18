@@ -1,16 +1,27 @@
 import openai
 from typing import Generator, Any
+from urllib.parse import urlparse
 from config.settings import settings
 from utils.logger import get_logger
 
 log = get_logger(__name__)
 
 class LLMClient:
-    def __init__(self, api_key: str, base_url: str, model_name: str, temperature: float, max_tokens: int):
+    def __init__(self, api_key: str, base_url: str, model_name: str, temperature: float, max_tokens: int, thinking_mode: str = "disabled"):
         self.client = openai.OpenAI(api_key=api_key, base_url=base_url, timeout=120.0)
         self.model_name = model_name
         self.temperature = temperature
         self.max_tokens = max_tokens
+        self.thinking_mode = thinking_mode
+        self.is_official_v4 = (
+            urlparse(base_url).hostname == "api.deepseek.com"
+            and model_name in {"deepseek-v4-pro", "deepseek-v4-flash", "deepseek-flash"}
+        )
+
+    def _provider_options(self) -> dict:
+        if self.is_official_v4:
+            return {"extra_body": {"thinking": {"type": self.thinking_mode}}}
+        return {}
 
     def chat(self, messages: list[dict], stream: bool = False, response_format: dict = None) -> str | Generator:
         """标准对话调用（支持流式和非流式）。
@@ -33,6 +44,7 @@ class LLMClient:
                 "temperature": self.temperature,
                 "max_tokens": self.max_tokens,
                 "stream": stream,
+                **self._provider_options(),
             }
             if response_format:
                 kwargs["response_format"] = response_format
@@ -40,7 +52,7 @@ class LLMClient:
             response = self.client.chat.completions.create(**kwargs)
 
             if stream:
-                return (chunk.choices[0].delta.content or "" for chunk in response)
+                return (chunk.choices[0].delta.content or "" for chunk in response if chunk.choices)
             else:
                 return response.choices[0].message.content or ""
 
@@ -71,6 +83,7 @@ class LLMClient:
                 "temperature": self.temperature,
                 "max_tokens": self.max_tokens,
                 "stream": False,
+                **self._provider_options(),
             }
             if response_format:
                 kwargs["response_format"] = response_format
@@ -113,11 +126,7 @@ class LLMClient:
     def create_from_settings(model_type: str = "main") -> "LLMClient":
         """工厂方法：根据配置创建不同用途的模型客户端。
 
-        支持类型（DeepSeek V4 + R1）：
-          - "main":     主模型（常规问答，DeepSeek V4）
-          - "judge":    Judge评估模型（DeepSeek R1）
-          - "lite":     轻量模型（简单任务，DeepSeek V4）
-          - "reasoner": 推理模型（复杂分析，DeepSeek R1）
+        支持 main、judge、lite、reasoner；实际模型由各角色配置决定。
         """
         model_map = {
             "main":     settings.LLM_MODEL_NAME,
@@ -132,5 +141,6 @@ class LLMClient:
             base_url=settings.LLM_BASE_URL,
             model_name=model_name,
             temperature=settings.LLM_TEMPERATURE,
-            max_tokens=settings.LLM_MAX_TOKENS
+            max_tokens=settings.LLM_MAX_TOKENS,
+            thinking_mode=settings.LLM_THINKING_MODE,
         )

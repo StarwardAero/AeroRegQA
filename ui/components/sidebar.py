@@ -1,4 +1,5 @@
 import streamlit as st
+from html import escape
 from ui.state import AppState
 from config.settings import settings
 
@@ -121,12 +122,12 @@ def render(conversation_manager, services):
 
     st.markdown('<p class="section-label">技术架构</p>', unsafe_allow_html=True)
     st.markdown(
-        """
+        f"""
         <div style="display:flex; flex-wrap:wrap; gap:6px; padding:4px 0;">
             <span class="tech-badge rag">Agentic RAG</span>
             <span class="tech-badge hybrid">Hybrid Search</span>
             <span class="tech-badge rerank">Rerank</span>
-            <span class="tech-badge llm">DeepSeek V3</span>
+            <span class="tech-badge llm">{escape(settings.LLM_MODEL_NAME)}</span>
             <span class="tech-badge api">FastAPI</span>
         </div>
         """,

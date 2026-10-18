@@ -26,6 +26,8 @@
 
 Streamlit Community Cloud 的入口仍为 `ui/app.py`，Python 使用 3.11。保留已有 Secrets，至少配置 `LLM_API_KEY`、`LLM_BASE_URL`、`LLM_MODEL_NAME`、`EMBEDDING_API_KEY`；向量模型必须是 `BAAI/bge-m3`，默认接口为 `https://api.siliconflow.cn/v1`。未配置的 Judge、Lite、Router 模型自动复用主模型名，支持第三方服务商的模型命名。
 
+DeepSeek 官方接口默认使用 `deepseek-v4-pro`。已有云端实例切换模型时，可在 Secrets 末尾添加独立的 `[aeroregqa_llm]` 配置节，保留原来的 Embedding 配置；具体步骤见 [Streamlit 部署与模型配置](docs/streamlit-deployment.md)。官方 V4 调用默认显式关闭思考模式，以减少多步骤问答的等待时间；可用 `LLM_THINKING_MODE="enabled"` 开启。
+
 `knowledge/seed.zip` 内置文本和向量，启动恢复不调用外部模型。运行时数据库、密钥、对话与日志仍排除在 Git 之外。云端运行目录丢失后会恢复内置知识库；访客后来上传的文件和对话不保证永久保存。当前版本仍是共享演示实例，未实现访客数据隔离。
 
 默认依赖使用 PyMuPDF 解析文本 PDF，避免云端安装大型 OCR 模型；本地扫描件 OCR 可选安装 `pip install -r requirements-ocr.txt`。Redis 不可用时自动禁用缓存，统计数据库默认使用 SQLite，无需单独部署 MySQL。

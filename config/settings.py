@@ -1,6 +1,7 @@
 import os
 import sys
 from pathlib import Path
+from typing import Literal
 from dotenv import load_dotenv
 from pydantic_settings import BaseSettings
 
@@ -19,6 +20,7 @@ def _cloud_llm_overrides() -> dict:
         "LLM_API_KEY", "LLM_BASE_URL", "LLM_MODEL_NAME",
         "LLM_JUDGE_MODEL_NAME", "LLM_LITE_MODEL_NAME",
         "LLM_REASONER_MODEL_NAME", "LLM_ROUTER_MODEL_NAME",
+        "LLM_THINKING_MODE",
     }
     return {key: value for key, value in section.items() if key in allowed}
 
@@ -34,14 +36,12 @@ class Settings(BaseSettings):
     LOGS_DIR: Path = BASE_DIR / "data" / "logs"
     KNOWLEDGE_SEED_PATH: Path = BASE_DIR / "knowledge" / "seed.zip"
 
-    # ── DeepSeek LLM 三级模型路由（V4 + R1） ─────────────────────
-    # 模型分层策略（DeepSeek V4 为主力模型）：
-    #   - lite:     DeepSeek V4（简单任务：闲聊、路由分类、搜索摘要）
-    #   - main:     DeepSeek V4（常规任务：RAG问答、对比分析）
-    #   - reasoner: DeepSeek R1（复杂任务：Judge评估、多文档综合、深度推理）
+    # 各用途默认复用主模型，也可分别指定服务商支持的模型名。
     LLM_API_KEY: str = ""
     LLM_BASE_URL: str = "https://api.deepseek.com/v1"
-    LLM_MODEL_NAME: str = "deepseek-chat"            # 主模型 — DeepSeek V4
+    LLM_MODEL_NAME: str = "deepseek-v4-pro"
+    # 官方 V4 默认开启深度思考；演示问答显式关闭，避免每个路由/检索步骤长时间等待。
+    LLM_THINKING_MODE: Literal["enabled", "disabled"] = "disabled"
     LLM_JUDGE_MODEL_NAME: str = ""
     LLM_LITE_MODEL_NAME: str = ""
     LLM_REASONER_MODEL_NAME: str = ""
@@ -50,12 +50,12 @@ class Settings(BaseSettings):
 
     # ── 模型成本估算（元/百万token，用于Dashboard成本展示） ──────
     MODEL_COST_PER_1M_INPUT: dict = {
-        "deepseek-chat": 2.0,       # DeepSeek V4 输入约 2元/百万token
-        "deepseek-reasoner": 4.0,   # DeepSeek R1 输入约 4元/百万token
+        "deepseek-chat": 2.0,       # 历史模型估算单价，非实时账单
+        "deepseek-reasoner": 4.0,
     }
     MODEL_COST_PER_1M_OUTPUT: dict = {
-        "deepseek-chat": 8.0,       # DeepSeek V4 输出约 8元/百万token
-        "deepseek-reasoner": 16.0,  # DeepSeek R1 输出约 16元/百万token
+        "deepseek-chat": 8.0,
+        "deepseek-reasoner": 16.0,
     }
 
     # Embedding (硅基流动 API)

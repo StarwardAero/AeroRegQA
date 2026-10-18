@@ -306,17 +306,14 @@ else:
 
 # === 模型路由策略说明 ===
 with st.expander("🧠 模型路由策略说明"):
-    st.markdown("""
-    | Skill 类型 | 模型层级 | 使用模型 | 原因 |
-    |-----------|---------|---------|------|
-    | chitchat / definition / concept | **Lite** | DeepSeek V4 | 简单任务，V4 即可应对 |
-    | rag / comparison / procedure / compliance | **Main** | DeepSeek V4 | 常规 RAG 问答 |
-    | summary / multi_doc / export / judge | **Reasoner** | DeepSeek R1 | 复杂推理，需深度思考 |
-
-    **成本对比**（估算）：
-    - DeepSeek V4 (`deepseek-chat`): 输入 ¥2/百万token, 输出 ¥8/百万token
-    - DeepSeek R1 (`deepseek-reasoner`): 输入 ¥4/百万token, 输出 ¥16/百万token
-    """)
+    st.dataframe([
+        {"用途": "常规问答", "实际模型": settings.LLM_MODEL_NAME},
+        {"用途": "简单任务", "实际模型": settings.LLM_LITE_MODEL_NAME},
+        {"用途": "复杂分析", "实际模型": settings.LLM_REASONER_MODEL_NAME},
+        {"用途": "答案评估", "实际模型": settings.LLM_JUDGE_MODEL_NAME},
+        {"用途": "意图路由", "实际模型": settings.LLM_ROUTER_MODEL_NAME},
+    ], hide_index=True, use_container_width=True)
+    st.caption("成本为本地配置的粗略估算，未配置模型使用默认估值；实际费用以服务商账单为准。")
 
 # === 数据新鲜度 ===
 st.caption(f"数据更新时间: {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')} UTC | 时间范围: 最近 {hours} 小时 | 数据来源: MySQL `llm_call_logs` + `skill_call_records`")
