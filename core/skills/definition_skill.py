@@ -57,7 +57,7 @@ class DefinitionSkill(BaseSkill):
         ]
 
         answer = self.llm.chat(messages, stream=False)
-        answer, citation_result = validate_citations(answer, chunks)
+        answer, citation_result = validate_citations(answer, chunks, self.llm, question)
         emit_agent_step(on_step, "citation_check", f"引用校验: {citation_result.valid_citations}/{citation_result.total_citations}", citation_result.__dict__)
         stream_checked_answer(answer, on_token, stop_event)
 

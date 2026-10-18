@@ -52,6 +52,10 @@ KEYWORD_RULES: list[dict] = [
         ],
     },
     {
+        "skill": "rag",
+        "patterns": [r"适用范围", r"第\s*\d+\.\d+\s*条", r"(原文依据|对应条款|引用条款)"],
+    },
+    {
         "skill": "definition",
         "patterns": [
             r"(什么是|是什么|定义|解释|含义|意思).{0,20}(？|\?|$)",

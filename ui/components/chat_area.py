@@ -3,6 +3,7 @@ from ui.state import AppState
 from .status_display import render_thinking_status
 from .file_uploader import render as render_file_uploader
 from core.rag.agent import AgentStep
+from .source_viewer import render_references
 
 
 def render(conversation_manager, agent, services):
@@ -66,7 +67,7 @@ def render(conversation_manager, agent, services):
             st.markdown(content)
             if role == "assistant" and msg.get("metadata", {}).get("sources"):
                 sources = msg["metadata"]["sources"]
-                st.caption(f"来源文献：{', '.join(sources)}")
+                render_references(sources, msg['metadata'].get('references', []))
 
             # ── 用户反馈按钮（仅 AI 回答） ──
             if role == "assistant" and msg.get("content"):
@@ -172,11 +173,16 @@ def render(conversation_manager, agent, services):
         with st.expander("查看 AI 处理过程", expanded=False):
             render_thinking_status(agent_steps)
 
+        references = []
+        for step in agent_steps:
+            if step.step_type == 'citation_check':
+                references = step.metadata.get('details', {}).get('references', [])
         if sources:
-            st.caption(f"来源文献：{', '.join(sources)}")
+            render_references(sources, references)
 
         metadata = {
             "sources": sources,
+            "references": references,
             "iterations": iterations,
             "interrupted": was_interrupted,
             "skill_name": skill_name,

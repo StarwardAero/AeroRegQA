@@ -154,6 +154,10 @@ def main():
     # 2. 注入自定义 CSS
     inject_custom_css()
 
+    from ui.components.source_viewer import render_source_page
+    if render_source_page():
+        return
+
     # 3. 初始化全局状态
     AppState.initialize()
 

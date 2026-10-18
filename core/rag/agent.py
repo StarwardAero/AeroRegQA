@@ -136,11 +136,8 @@ class AgenticRAG:
                 step_start = time.time()
 
                 final_answer = self.main_llm.chat(messages, stream=False)
-                citation_result = self.citation_checker.check(final_answer, len(chunks))
-                if not citation_result.is_valid:
-                    cleaned_answer = self.citation_checker.strip_invalid_citations(final_answer, len(chunks))
-                    if cleaned_answer != final_answer:
-                        final_answer = cleaned_answer
+                from core.skills.utils import validate_citations
+                final_answer, citation_result = validate_citations(final_answer, chunks, self.main_llm, question)
                 steps.append(AgentStep(
                     "citation_check",
                     final_answer,
